@@ -27,10 +27,10 @@ public final class ElpriserAPI {
 
     // En återanvändbar HttpClient-instans
     private final HttpClient httpClient;
-    
+
     // Flagga för att styra cachlagring
     private final boolean cachingEnabled;
-    
+
     // Ett enkelt minnes-cache. Nyckeln är en kombination av datum och prisklass, t.ex. "2025-08-30_SE3"
     private final Map<String, List<Elpris>> inMemoryCache;
 
@@ -39,11 +39,11 @@ public final class ElpriserAPI {
      * Användningen av 'record' genererar automatiskt constructor, getters, equals, hashCode och toString.
      */
     public record Elpris(
-        double sekPerKWh,
-        double eurPerKWh,
-        double exr,
-        ZonedDateTime timeStart,
-        ZonedDateTime timeEnd
+            double sekPerKWh,
+            double eurPerKWh,
+            double exr,
+            ZonedDateTime timeStart,
+            ZonedDateTime timeEnd
     ) {}
 
     /**
@@ -59,7 +59,7 @@ public final class ElpriserAPI {
      * use the String it provides instead of making a real HTTP call.
      */
     private static Supplier<String> mockResponseSupplier = null;
-    
+
     // New: map mock responses per date, so tests can provide different JSON per day
     private static java.util.Map<LocalDate, String> datedMockResponses = new java.util.HashMap<>();
 
@@ -71,7 +71,7 @@ public final class ElpriserAPI {
     public static void setMockResponse(String jsonResponse) {
         mockResponseSupplier = () -> jsonResponse;
     }
-    
+
     /**
      * FOR TESTS ONLY: Sets a mock JSON response for a specific date. This allows
      * tests to simulate availability for one day but not another.
@@ -152,9 +152,9 @@ public final class ElpriserAPI {
         // Steg 2: Försök ladda från disk-cache (framtida implementation)
         var priserFrånDisk = loadFromDiskCache(cacheKey);
         if (cachingEnabled && priserFrånDisk != null && !priserFrånDisk.isEmpty()) {
-             System.out.println("Hämtar från disk-cache för " + cacheKey);
-             inMemoryCache.put(cacheKey, priserFrånDisk); // Lägg i minnes-cachen för snabbare åtkomst nästa gång
-             return priserFrånDisk;
+            System.out.println("Hämtar från disk-cache för " + cacheKey);
+            inMemoryCache.put(cacheKey, priserFrånDisk); // Lägg i minnes-cachen för snabbare åtkomst nästa gång
+            return priserFrånDisk;
         }
 
         // Check for a mock response before making a network call ---
@@ -185,8 +185,8 @@ public final class ElpriserAPI {
                 return Collections.emptyList();
             }
             if (response.statusCode() != 200) {
-                 System.err.println("Misslyckades med att hämta priser. Statuskod: " + response.statusCode());
-                 return Collections.emptyList();
+                System.err.println("Misslyckades med att hämta priser. Statuskod: " + response.statusCode());
+                return Collections.emptyList();
             }
 
             List<Elpris> priser = parseSimpleJson(response.body());
@@ -212,7 +212,7 @@ public final class ElpriserAPI {
         String formattedDate = datum.format(URL_DATE_FORMATTER);
         return String.format("%s/%s_%s.json", API_BASE_URL, formattedDate, prisklass.name());
     }
-    
+
     private String getCacheKey(LocalDate datum, Prisklass prisklass) {
         return datum.format(DateTimeFormatter.ISO_LOCAL_DATE) + "_" + prisklass.name();
     }
@@ -239,7 +239,7 @@ public final class ElpriserAPI {
         for (String objStr : objects) {
             // Rensa bort resterande { och }
             String cleanObjStr = objStr.replace("{", "").replace("}", "");
-            
+
             try {
                 // Skapa en temporär map för att hålla värdena för ett objekt
                 Map<String, String> valueMap = new java.util.HashMap<>();
@@ -253,11 +253,11 @@ public final class ElpriserAPI {
 
                 // Skapa ett Elpris-objekt från värdena i mappen
                 priser.add(new Elpris(
-                    Double.parseDouble(valueMap.get("SEK_per_kWh")),
-                    Double.parseDouble(valueMap.get("EUR_per_kWh")),
-                    Double.parseDouble(valueMap.get("EXR")),
-                    ZonedDateTime.parse(valueMap.get("time_start")),
-                    ZonedDateTime.parse(valueMap.get("time_end"))
+                        Double.parseDouble(valueMap.get("SEK_per_kWh")),
+                        Double.parseDouble(valueMap.get("EUR_per_kWh")),
+                        Double.parseDouble(valueMap.get("EXR")),
+                        ZonedDateTime.parse(valueMap.get("time_start")),
+                        ZonedDateTime.parse(valueMap.get("time_end"))
                 ));
             } catch (Exception e) {
                 // Hoppa över objekt som inte kan parsas, logga ett fel
@@ -266,9 +266,9 @@ public final class ElpriserAPI {
         }
         return priser;
     }
-    
+
     // --- Stub-metoder för disk-cache ---
-    
+
     /**
      * STUB: Spara data till en fil i en dold katalog i användarens hemkatalog.
      * Oimplementerad tills vidare.
@@ -314,9 +314,9 @@ public final class ElpriserAPI {
         } else {
             System.out.println("\nDagens elpriser för " + Prisklass.SE3 + " (" + dagensPriser.size() + " st värden):");
             // Skriv bara ut de 3 första för att hålla utskriften kort
-            dagensPriser.stream().limit(3).forEach(pris -> 
-                System.out.printf("Tid: %s, Pris: %.4f SEK/kWh\n", 
-                    pris.timeStart().toLocalTime(), pris.sekPerKWh())
+            dagensPriser.stream().limit(3).forEach(pris ->
+                    System.out.printf("Tid: %s, Pris: %.4f SEK/kWh\n",
+                            pris.timeStart().toLocalTime(), pris.sekPerKWh())
             );
             if(dagensPriser.size() > 3) System.out.println("...");
         }
