@@ -1,124 +1,82 @@
 package com.example;
 
 import com.example.api.ElpriserAPI;
+import com.example.api.ElpriserAPI.Elpris;
+import com.example.api.ElpriserAPI.Prisklass;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
-        Map<String, String> opts = ArgParser.parse(args);
-
-        if (opts.containsKey("help")) {
-            showHelp();
+        if (args.length == 0) {
+            System.out.println("Usage: java -jar app.jar --zone <SE1|SE2|SE3|SE4> [--date YYYY-MM-DD]");
             return;
         }
 
-        String zone = opts.get("zone");
-        if (zone == null) {
+        String zoneArg = null;
+        String dateArg = null;
+        for (int i = 0; i < args.length; i++) {
+            if ("--zone".equalsIgnoreCase(args[i]) && i + 1 < args.length) {
+                zoneArg = args[i + 1];
+            }
+            if ("--date".equalsIgnoreCase(args[i]) && i + 1 < args.length) {
+                dateArg = args[i + 1];
+            }
+        }
+
+        if (zoneArg == null) {
             System.out.println("Fel: --zone är obligatoriskt (SE1|SE2|SE3|SE4)");
             return;
         }
 
-        String dateStr = opts.getOrDefault("date", LocalDate.now().toString());
-        LocalDate date;
+        Prisklass prisklass;
         try {
-            date = LocalDate.parse(dateStr);
-        } catch (Exception e) {
-            System.out.println("Fel: Ogiltigt datumformat. Använd YYYY-MM-DD");
+            prisklass = Prisklass.valueOf(zoneArg.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Fel: okänd zon. Välj SE1, SE2, SE3 eller SE4");
             return;
         }
 
-        boolean sorted = opts.containsKey("sorted");
-        String charging = opts.get("charging");
+        LocalDate datum = dateArg != null ? LocalDate.parse(dateArg) : LocalDate.now();
 
-        try {
-            ElpriserAPI.Prisklass prisklass = ElpriserAPI.Prisklass.valueOf(zone);
-            ElpriserAPI api = new ElpriserAPI();
-            List<ElpriserAPI.Elpris> priser = api.getPriser(date, prisklass);
+        ElpriserAPI api = new ElpriserAPI(false);
+        List<Elpris> priser = api.getPriser(datum, prisklass);
 
-            if (priser.isEmpty()) {
-                System.out.println("Fel: Ingen data tillgänglig för vald zon/datum.");
-                return;
-            }
-
-            priser.sort((p1, p2) -> sorted
-                    ? Double.compare(p1.sekPerKWh(), p2.sekPerKWh())
-                    : Integer.compare(p1.timeStart().getHour(), p2.timeStart().getHour())
-            );
-
-            System.out.println("ElpriserAPI initialiserat. Cachning: PÅ");
-            System.out.println("!!! ANVÄNDER MOCK-DATA FÖR TEST !!!");
-            System.out.println("Zon: " + zone);
-            System.out.println("Datum: " + date);
-            for (ElpriserAPI.Elpris p : priser) {
-                System.out.printf("%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
-            }
-
-            double minPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).min().orElse(0);
-            double maxPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).max().orElse(0);
-            double medelPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).average().orElse(0);
-
-            System.out.printf("Lägsta pris: %.4f%n", minPris);
-            System.out.printf("Högsta pris: %.4f%n", maxPris);
-            System.out.printf("Medelpris: %.4f%n", medelPris);
-
-            if (charging != null) {
-                int hours;
-                try {
-                    hours = Integer.parseInt(charging.replace("h", ""));
-                } catch (Exception e) {
-                    System.out.println("Fel: Ogiltig laddningstid. Ange 2h, 4h eller 8h");
-                    return;
-                }
-                List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
-                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(date.plusDays(1), prisklass);
-                fullData.addAll(nextDayPrices);
-
-                ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
-                if (optimalWindow != null) {
-                    double avgPrice = Arrays.stream(optimalWindow)
-                            .mapToDouble(ElpriserAPI.Elpris::sekPerKWh)
-                            .average()
-                            .orElse(0);
-                    System.out.printf("Börja laddning: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
-                            optimalWindow[0].timeStart().getHour(),
-                            optimalWindow[optimalWindow.length - 1].timeStart().getHour() + 1,
-                            avgPrice);
-                }
-            }
-
-        } catch (IllegalArgumentException e) {
-            System.out.println("Fel: Ogiltig zon. Välj SE1, SE2, SE3 eller SE4");
-        } catch (Exception e) {
-            System.out.println("Fel: " + e.getMessage());
+        if (priser.isEmpty()) {
+            System.out.println("Inga priser hittades för " + prisklass + " den " + datum);
+            return;
         }
-    }
 
-    private static ElpriserAPI.Elpris[] findOptimalWindow(List<ElpriserAPI.Elpris> priser, int hours) {
-        if (priser.size() < hours) return null;
-        double minSum = Double.MAX_VALUE;
-        int startIdx = 0;
-        for (int i = 0; i <= priser.size() - hours; i++) {
+        double minPris = priser.stream().mapToDouble(Elpris::sekPerKWh).min().orElse(0);
+        double maxPris = priser.stream().mapToDouble(Elpris::sekPerKWh).max().orElse(0);
+        double medelPris = priser.stream().mapToDouble(Elpris::sekPerKWh).average().orElse(0);
+
+        System.out.println("Zon: " + prisklass);
+        System.out.println("Datum: " + datum);
+        priser.forEach(pris ->
+                System.out.printf("%02d:00 - %.4f SEK/kWh%n", pris.timeStart().getHour(), pris.sekPerKWh())
+        );
+        System.out.printf("Lägsta pris: %.4f%n", minPris);
+        System.out.printf("Högsta pris: %.4f%n", maxPris);
+        System.out.printf("Medelpris: %.4f%n", medelPris);
+
+        double lägstaGenomsnitt = Double.MAX_VALUE;
+        int startHour = 0;
+        for (int i = 0; i <= priser.size() - 8; i++) {
             double sum = 0;
-            for (int j = 0; j < hours; j++) sum += priser.get(i + j).sekPerKWh();
-            if (sum < minSum) {
-                minSum = sum;
-                startIdx = i;
+            for (int j = 0; j < 8; j++) {
+                sum += priser.get(i + j).sekPerKWh();
+            }
+            double avg = sum / 8;
+            if (avg < lägstaGenomsnitt) {
+                lägstaGenomsnitt = avg;
+                startHour = i;
             }
         }
-        ElpriserAPI.Elpris[] window = new ElpriserAPI.Elpris[hours];
-        for (int i = 0; i < hours; i++) window[i] = priser.get(startIdx + i);
-        return window;
-    }
 
-    private static void showHelp() {
-        System.out.println("Usage: java -jar app.jar --zone SE1|SE2|SE3|SE4 [--date YYYY-MM-DD] [--sorted] [--charging 2h|4h|8h] [--help]");
-        System.out.println("--zone <SE1|SE2|SE3|SE4>     Välj elområde (obligatoriskt)");
-        System.out.println("--date <YYYY-MM-DD>           Välj datum (valfritt, default idag)");
-        System.out.println("--sorted                      Sortera priserna efter lägst till högst");
-        System.out.println("--charging 2h|4h|8h           Visa bästa laddningsfönster");
-        System.out.println("--help                        Visa denna hjälptext");
+        System.out.printf("Påbörja laddning: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
+                startHour, startHour + 8, lägstaGenomsnitt);
     }
 }
