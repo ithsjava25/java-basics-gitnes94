@@ -3,7 +3,6 @@ package com.example;
 import com.example.api.ElpriserAPI;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -61,6 +60,7 @@ public class Main {
             double maxPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).max().orElse(0);
             double medelPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).average().orElse(0);
 
+            // Exakt text som testet förväntar sig
             System.out.printf("Minpris: %.4f%n", minPris);
             System.out.printf("Maxpris: %.4f%n", maxPris);
             System.out.printf("Medelpris: %.4f%n", medelPris);
@@ -73,11 +73,10 @@ public class Main {
                     System.out.println("Fel: Ogiltig laddningstid. Ange 2h, 4h eller 8h");
                     return;
                 }
-                List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
 
+                List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
                 LocalDate nextDay = date.plusDays(1);
-                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(nextDay, prisklass);
-                fullData.addAll(nextDayPrices);
+                fullData.addAll(api.getPriser(nextDay, prisklass));
 
                 ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
                 if (optimalWindow != null) {
@@ -85,6 +84,7 @@ public class Main {
                             .mapToDouble(ElpriserAPI.Elpris::sekPerKWh)
                             .average()
                             .orElse(0);
+                    // Exakt utskrift som testet vill ha
                     System.out.printf("Bästa %dh-fönster: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
                             hours,
                             optimalWindow[0].timeStart().getHour(),
