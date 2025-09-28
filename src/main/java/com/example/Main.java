@@ -47,23 +47,22 @@ public class Main {
             if (sorted) {
                 priser.sort(Comparator.comparingDouble(ElpriserAPI.Elpris::sekPerKWh));
             } else {
-                priser.sort(Comparator.comparing(ElpriserAPI.Elpris::timeStart));
+                priser.sort(Comparator.comparing(p -> p.timeStart().getHour()));
             }
 
             System.out.println("Zon: " + zone);
             System.out.println("Datum: " + date);
             for (ElpriserAPI.Elpris p : priser) {
-                System.out.printf("%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
+                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
             }
 
             double minPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).min().orElse(0);
             double maxPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).max().orElse(0);
             double medelPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).average().orElse(0);
 
-            // Exakt text som testet förväntar sig
-            System.out.printf("Minpris: %.4f%n", minPris);
-            System.out.printf("Maxpris: %.4f%n", maxPris);
-            System.out.printf("Medelpris: %.4f%n", medelPris);
+            System.out.printf(Locale.US, "Minpris: %.4f%n", minPris);
+            System.out.printf(Locale.US, "Maxpris: %.4f%n", maxPris);
+            System.out.printf(Locale.US, "Medelpris: %.4f%n", medelPris);
 
             if (charging != null) {
                 int hours;
@@ -73,10 +72,11 @@ public class Main {
                     System.out.println("Fel: Ogiltig laddningstid. Ange 2h, 4h eller 8h");
                     return;
                 }
-
                 List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
+
                 LocalDate nextDay = date.plusDays(1);
-                fullData.addAll(api.getPriser(nextDay, prisklass));
+                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(nextDay, prisklass);
+                fullData.addAll(nextDayPrices);
 
                 ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
                 if (optimalWindow != null) {
@@ -84,11 +84,10 @@ public class Main {
                             .mapToDouble(ElpriserAPI.Elpris::sekPerKWh)
                             .average()
                             .orElse(0);
-                    // Exakt utskrift som testet vill ha
-                    System.out.printf("Bästa %dh-fönster: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
+                    System.out.printf(Locale.US, "Bästa %dh-fönster: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
                             hours,
                             optimalWindow[0].timeStart().getHour(),
-                            optimalWindow[optimalWindow.length - 1].timeStart().getHour(),
+                            optimalWindow[optimalWindow.length - 1].timeStart().getHour() + 1, // sluttimme +1
                             avgPrice);
                 }
             }
