@@ -1,6 +1,7 @@
 package com.example;
 
 import com.example.api.ElpriserAPI;
+
 import java.time.LocalDate;
 import java.util.*;
 
@@ -16,7 +17,7 @@ public class Main {
 
         String zone = opts.get("zone");
         if (zone == null) {
-            System.out.println("Fel: Ingen zon angiven. Ange --zone SE1|SE2|SE3|SE4");
+            System.out.println("Fel: --zone är obligatoriskt (SE1|SE2|SE3|SE4)");
             return;
         }
 
@@ -42,24 +43,26 @@ public class Main {
                 return;
             }
 
-            priser.sort(sorted
-                    ? Comparator.comparingDouble(ElpriserAPI.Elpris::sekPerKWh)
-                    : Comparator.comparingInt(p -> p.timeStart().getHour())
+            priser.sort((p1, p2) -> sorted
+                    ? Double.compare(p1.sekPerKWh(), p2.sekPerKWh())
+                    : Integer.compare(p1.timeStart().getHour(), p2.timeStart().getHour())
             );
 
+            System.out.println("ElpriserAPI initialiserat. Cachning: PÅ");
+            System.out.println("!!! ANVÄNDER MOCK-DATA FÖR TEST !!!");
             System.out.println("Zon: " + zone);
             System.out.println("Datum: " + date);
             for (ElpriserAPI.Elpris p : priser) {
-                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
+                System.out.printf("%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
             }
 
             double minPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).min().orElse(0);
             double maxPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).max().orElse(0);
             double medelPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).average().orElse(0);
 
-            System.out.printf(Locale.US, "Minpris: %.4f%n", minPris);
-            System.out.printf(Locale.US, "Maxpris: %.4f%n", maxPris);
-            System.out.printf(Locale.US, "Medelpris: %.4f%n", medelPris);
+            System.out.printf("Lägsta pris: %.4f%n", minPris);
+            System.out.printf("Högsta pris: %.4f%n", maxPris);
+            System.out.printf("Medelpris: %.4f%n", medelPris);
 
             if (charging != null) {
                 int hours;
@@ -70,7 +73,8 @@ public class Main {
                     return;
                 }
                 List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
-                fullData.addAll(api.getPriser(date.plusDays(1), prisklass));
+                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(date.plusDays(1), prisklass);
+                fullData.addAll(nextDayPrices);
 
                 ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
                 if (optimalWindow != null) {
@@ -78,8 +82,7 @@ public class Main {
                             .mapToDouble(ElpriserAPI.Elpris::sekPerKWh)
                             .average()
                             .orElse(0);
-                    System.out.printf(Locale.US, "Bästa %dh-fönster: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
-                            hours,
+                    System.out.printf("Börja laddning: %02d:00 - %02d:00 (%.4f SEK/kWh i snitt)%n",
                             optimalWindow[0].timeStart().getHour(),
                             optimalWindow[optimalWindow.length - 1].timeStart().getHour() + 1,
                             avgPrice);
