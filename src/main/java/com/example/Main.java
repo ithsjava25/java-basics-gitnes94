@@ -1,10 +1,8 @@
 package com.example;
 
 import com.example.api.ElpriserAPI;
-
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Main {
 
@@ -46,15 +44,13 @@ public class Main {
 
             priser.sort(sorted
                     ? Comparator.comparingDouble(ElpriserAPI.Elpris::sekPerKWh)
-                    : Comparator.comparing(p -> p.timeStart().getHour())
+                    : Comparator.comparingInt(p -> p.timeStart().getHour())
             );
 
             System.out.println("Zon: " + zone);
             System.out.println("Datum: " + date);
             for (ElpriserAPI.Elpris p : priser) {
-                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n",
-                        p.timeStart().getHour(),
-                        p.sekPerKWh());
+                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
             }
 
             double minPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).min().orElse(0);
@@ -73,11 +69,8 @@ public class Main {
                     System.out.println("Fel: Ogiltig laddningstid. Ange 2h, 4h eller 8h");
                     return;
                 }
-
                 List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
-                LocalDate nextDay = date.plusDays(1);
-                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(nextDay, prisklass);
-                fullData.addAll(nextDayPrices);
+                fullData.addAll(api.getPriser(date.plusDays(1), prisklass));
 
                 ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
                 if (optimalWindow != null) {
@@ -104,7 +97,6 @@ public class Main {
         if (priser.size() < hours) return null;
         double minSum = Double.MAX_VALUE;
         int startIdx = 0;
-
         for (int i = 0; i <= priser.size() - hours; i++) {
             double sum = 0;
             for (int j = 0; j < hours; j++) sum += priser.get(i + j).sekPerKWh();
@@ -113,7 +105,6 @@ public class Main {
                 startIdx = i;
             }
         }
-
         ElpriserAPI.Elpris[] window = new ElpriserAPI.Elpris[hours];
         for (int i = 0; i < hours; i++) window[i] = priser.get(startIdx + i);
         return window;
