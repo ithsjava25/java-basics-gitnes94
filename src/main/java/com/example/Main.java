@@ -10,7 +10,6 @@ public class Main {
 
     public static void main(String[] args) {
         Map<String, String> opts = ArgParser.parse(args);
-        Scanner scanner = new Scanner(System.in);
 
         if (opts.containsKey("help")) {
             showHelp();
@@ -18,10 +17,9 @@ public class Main {
         }
 
         String zone = opts.get("zone");
-        while (zone == null) {
-            System.out.print("Ange zon (SE1|SE2|SE3|SE4): ");
-            zone = scanner.nextLine().trim();
-            if (zone.isEmpty()) zone = null;
+        if (zone == null) {
+            System.out.println("Fel: Ingen zon angiven. Ange --zone SE1|SE2|SE3|SE4");
+            return;
         }
 
         String dateStr = opts.getOrDefault("date", LocalDate.now().toString());
@@ -46,15 +44,17 @@ public class Main {
                 return;
             }
 
-            priser.sort((p1, p2) -> sorted
-                    ? Double.compare(p1.sekPerKWh(), p2.sekPerKWh())
-                    : Integer.compare(p1.timeStart().getHour(), p2.timeStart().getHour())
+            priser.sort(sorted
+                    ? Comparator.comparingDouble(ElpriserAPI.Elpris::sekPerKWh)
+                    : Comparator.comparing(p -> p.timeStart().getHour())
             );
 
             System.out.println("Zon: " + zone);
             System.out.println("Datum: " + date);
             for (ElpriserAPI.Elpris p : priser) {
-                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n", p.timeStart().getHour(), p.sekPerKWh());
+                System.out.printf(Locale.US, "%02d:00 - %.4f SEK/kWh%n",
+                        p.timeStart().getHour(),
+                        p.sekPerKWh());
             }
 
             double minPris = priser.stream().mapToDouble(ElpriserAPI.Elpris::sekPerKWh).min().orElse(0);
@@ -73,8 +73,10 @@ public class Main {
                     System.out.println("Fel: Ogiltig laddningstid. Ange 2h, 4h eller 8h");
                     return;
                 }
+
                 List<ElpriserAPI.Elpris> fullData = new ArrayList<>(priser);
-                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(date.plusDays(1), prisklass);
+                LocalDate nextDay = date.plusDays(1);
+                List<ElpriserAPI.Elpris> nextDayPrices = api.getPriser(nextDay, prisklass);
                 fullData.addAll(nextDayPrices);
 
                 ElpriserAPI.Elpris[] optimalWindow = findOptimalWindow(fullData, hours);
@@ -102,6 +104,7 @@ public class Main {
         if (priser.size() < hours) return null;
         double minSum = Double.MAX_VALUE;
         int startIdx = 0;
+
         for (int i = 0; i <= priser.size() - hours; i++) {
             double sum = 0;
             for (int j = 0; j < hours; j++) sum += priser.get(i + j).sekPerKWh();
@@ -110,6 +113,7 @@ public class Main {
                 startIdx = i;
             }
         }
+
         ElpriserAPI.Elpris[] window = new ElpriserAPI.Elpris[hours];
         for (int i = 0; i < hours; i++) window[i] = priser.get(startIdx + i);
         return window;
