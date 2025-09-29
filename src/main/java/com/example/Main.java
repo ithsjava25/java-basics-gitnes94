@@ -163,7 +163,8 @@ public class Main {
 
         List<Elpris> priserForDisplay = new ArrayList<>(priser);
         if (sorted) {
-            priserForDisplay.sort(Comparator.comparingDouble(Elpris::sekPerKWh).reversed());
+            // KORRIGERING: Tar bort .reversed() för att sortera från billigast till dyrast.
+            priserForDisplay.sort(Comparator.comparingDouble(Elpris::sekPerKWh));
         }
 
         for (Elpris pris : priserForDisplay) {
@@ -195,7 +196,7 @@ public class Main {
                 Argument:
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt) Välj elprisområde.
                   --date YYYY-MM-DD        (valfritt, standard = idag) Datum att hämta priser för.
-                  --sorted                 (valfritt) Visar prislistan sorterad från dyrast till billigast.
+                  --sorted                 (valfritt) Visar prislistan sorterad från billigast till dyrast.
                   --charging 2h|4h|8h      (valfritt) Hittar de billigaste N sammanhängande timmarna för laddning.
                   --help                   (valfritt) Visar denna hjälp.
                 """);
