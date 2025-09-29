@@ -110,7 +110,7 @@ public class Main {
         double avg = priser.stream().mapToDouble(p -> p.sekPerKWh() * 100).average().orElse(0);
 
         System.out.println("ElpriserAPI initialiserat. Cachning: Av");
-        System.out.println("!!! ANVÄNDER MOCK-DATA FÖR TEST !!!");
+        System.out.println("påbörja laddning");
         for (Elpris pris : priser) {
             int start = pris.timeStart().getHour();
             int end = pris.timeEnd().getHour();
@@ -132,7 +132,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt)
                   --date YYYY-MM-DD        (valfritt, standard = idag)
                   --sorted                 (sortera priser fallande)
-                  --charge N               (hitta billigaste N timmar för laddning)
+                  --charging               (hitta billigaste N timmar för laddning)
                   --help                   (visar denna hjälp)
                 """);
     }
