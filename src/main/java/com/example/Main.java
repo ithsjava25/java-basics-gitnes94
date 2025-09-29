@@ -30,7 +30,7 @@ public class Main {
                     }
                 }
                 case "--sorted" -> sorted = true;
-                case "--charge" -> {
+                case "--charging" -> {
                     if (i + 1 < args.length) {
                         chargingHours = Integer.parseInt(args[++i]);
                     }
@@ -43,7 +43,7 @@ public class Main {
         }
 
         if (zone == null) {
-            System.err.println("Du måste ange en priszon med --zone SE1|SE2|SE3|SE4");
+            System.err.println("du måste ange en priszon med --zone SE1|SE2|SE3|SE4");
             printHelp();
             return;
         }
@@ -52,7 +52,7 @@ public class Main {
         try {
             prisklass = Prisklass.valueOf(zone);
         } catch (IllegalArgumentException e) {
-            System.err.println("Ogiltig zon: " + zone);
+            System.err.println("ogiltig zon " + zone);
             printHelp();
             return;
         }
@@ -64,7 +64,7 @@ public class Main {
             try {
                 datum = LocalDate.parse(dateStr);
             } catch (DateTimeParseException e) {
-                System.err.println("Ogiltigt datumformat. Använd YYYY-MM-DD");
+                System.err.println("ogiltigt datum");
                 return;
             }
         }
@@ -73,13 +73,13 @@ public class Main {
         List<Elpris> priser = api.getPriser(datum, prisklass);
 
         if (priser.isEmpty()) {
-            System.out.println("Inga priser hittades för " + datum + " i zon " + prisklass);
+            System.out.println("inga priser hittades för " + datum + " i zon " + prisklass);
             return;
         }
 
         if (chargingHours > 0) {
             if (chargingHours > priser.size()) {
-                System.err.println("Kan inte ladda längre än " + priser.size() + " timmar.");
+                System.err.println("kan inte ladda längre än " + priser.size() + " timmar.");
                 return;
             }
 
@@ -102,7 +102,7 @@ public class Main {
             double avg = minSum / chargingHours;
 
             System.out.printf(
-                    "Påbörja laddning kl %02d:00 och ladda till %02d:00%n",
+                    "påbörja laddning",
                     start.timeStart().getHour(),
                     end.timeEnd().getHour()
             );
