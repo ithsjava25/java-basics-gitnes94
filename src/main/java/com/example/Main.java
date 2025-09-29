@@ -140,7 +140,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt)
                   --date YYYY-MM-DD        (valfritt, standard = idag)
                   --sorted                 (sortera priser fallande)
-                  --charge N               (hitta billigaste N timmar för laddning)
+                  --charging               (hitta billigaste N timmar för laddning)
                   --help                   (visar denna hjälp)
                 """);
     }
