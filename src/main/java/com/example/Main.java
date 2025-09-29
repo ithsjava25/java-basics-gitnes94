@@ -83,7 +83,8 @@ public class Main {
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
-        // Formatter för tid HH:mm
+        // Tidsformat: HH för min/max/medel, HH:mm för laddningsfönster
+        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
         if (chargingHours > 0) {
@@ -107,7 +108,10 @@ public class Main {
             Elpris end = priser.get(bestStart + chargingHours - 1);
             double avg = minSum / chargingHours;
 
-            System.out.println("påbörja laddning: " + start.timeStart().format(timeFormatter) + "-" + end.timeEnd().format(timeFormatter));
+            // HH:mm för laddningsfönster
+            System.out.println("påbörja laddning: " +
+                    start.timeStart().format(timeFormatter) + "-" +
+                    end.timeEnd().format(timeFormatter));
             System.out.println("Total kostnad: " + df.format(minSum) + " öre");
             System.out.println("Genomsnitt: " + df.format(avg) + " öre/kWh");
             return;
@@ -123,11 +127,13 @@ public class Main {
 
         System.out.println("ElpriserAPI initialiserat. Cachning: Av");
         System.out.println("Påbörja laddning");
+
+        // HH-HH för display av priser
         for (Elpris pris : priser) {
-            String startTime = pris.timeStart().format(timeFormatter);
-            String endTime = pris.timeEnd().format(timeFormatter);
+            String startHour = pris.timeStart().format(hourFormatter);
+            String endHour = pris.timeEnd().format(hourFormatter);
             double ore = pris.sekPerKWh() * 100;
-            System.out.println(startTime + "-" + endTime + " " + df.format(ore) + " öre");
+            System.out.println(startHour + "-" + endHour + " " + df.format(ore) + " öre");
         }
         System.out.println("Lägsta pris: " + df.format(min));
         System.out.println("Högsta pris: " + df.format(max));
