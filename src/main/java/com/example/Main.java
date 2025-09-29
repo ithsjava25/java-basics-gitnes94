@@ -78,15 +78,16 @@ public class Main {
             return;
         }
 
-        // DecimalFormat för svenska format med komma
+        // DecimalFormat med svenska format (komma)
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.forLanguageTag("sv-SE"));
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
-        // Tidsformat: HH för min/max/medel, HH:mm för laddningsfönster
-        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");
-        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        // Tidsformat
+        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");   // för prislista
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm"); // för laddningsfönster
 
+        // Laddningsoptimering
         if (chargingHours > 0) {
             if (chargingHours > priser.size()) {
                 System.out.println("fel: kan inte ladda längre än " + priser.size() + " timmar");
@@ -108,7 +109,6 @@ public class Main {
             Elpris end = priser.get(bestStart + chargingHours - 1);
             double avg = minSum / chargingHours;
 
-            // HH:mm för laddningsfönster
             System.out.println("påbörja laddning: " +
                     start.timeStart().format(timeFormatter) + "-" +
                     end.timeEnd().format(timeFormatter));
@@ -117,6 +117,7 @@ public class Main {
             return;
         }
 
+        // Sortering av priser
         if (sorted) {
             priser.sort(Comparator.comparingDouble(Elpris::sekPerKWh));
         }
@@ -128,12 +129,12 @@ public class Main {
         System.out.println("ElpriserAPI initialiserat. Cachning: Av");
         System.out.println("Påbörja laddning");
 
-        // HH-HH för display av priser
+        // Display priser med HH-HH och svenska decimaler
         for (Elpris pris : priser) {
-            int startHour = pris.timeStart().getHour();
-            int endHour = pris.timeEnd().getHour();
+            String startHour = pris.timeStart().format(hourFormatter);
+            String endHour = pris.timeEnd().format(hourFormatter);
             double ore = pris.sekPerKWh() * 100;
-            System.out.println(String.format("%02d-%02d %s öre", startHour, endHour, df.format(ore)));
+            System.out.println(startHour + "-" + endHour + " " + df.format(ore) + " öre");
         }
 
         System.out.println("Lägsta pris: " + df.format(min));
