@@ -7,6 +7,7 @@ import com.example.api.ElpriserAPI.Prisklass;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
@@ -82,6 +83,9 @@ public class Main {
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
+        // Formatter för tid HH:mm
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
         if (chargingHours > 0) {
             if (chargingHours > priser.size()) {
                 System.out.println("fel: kan inte ladda längre än " + priser.size() + " timmar");
@@ -103,7 +107,7 @@ public class Main {
             Elpris end = priser.get(bestStart + chargingHours - 1);
             double avg = minSum / chargingHours;
 
-            System.out.println("påbörja laddning: " + start.timeStart().getHour() + "-" + end.timeEnd().getHour());
+            System.out.println("påbörja laddning: " + start.timeStart().format(timeFormatter) + "-" + end.timeEnd().format(timeFormatter));
             System.out.println("Total kostnad: " + df.format(minSum) + " öre");
             System.out.println("Genomsnitt: " + df.format(avg) + " öre/kWh");
             return;
@@ -120,10 +124,10 @@ public class Main {
         System.out.println("ElpriserAPI initialiserat. Cachning: Av");
         System.out.println("Påbörja laddning");
         for (Elpris pris : priser) {
-            int start = pris.timeStart().getHour();
-            int end = pris.timeEnd().getHour();
+            String startTime = pris.timeStart().format(timeFormatter);
+            String endTime = pris.timeEnd().format(timeFormatter);
             double ore = pris.sekPerKWh() * 100;
-            System.out.println(String.format("%02d-%02d %s öre", start, end, df.format(ore)));
+            System.out.println(startTime + "-" + endTime + " " + df.format(ore) + " öre");
         }
         System.out.println("Lägsta pris: " + df.format(min));
         System.out.println("Högsta pris: " + df.format(max));
