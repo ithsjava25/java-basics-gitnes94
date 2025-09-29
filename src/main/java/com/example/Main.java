@@ -130,11 +130,12 @@ public class Main {
 
         // HH-HH för display av priser
         for (Elpris pris : priser) {
-            String startHour = pris.timeStart().format(hourFormatter);
-            String endHour = pris.timeEnd().format(hourFormatter);
+            int startHour = pris.timeStart().getHour();
+            int endHour = pris.timeEnd().getHour();
             double ore = pris.sekPerKWh() * 100;
-            System.out.println(startHour + "-" + endHour + " " + df.format(ore) + " öre");
+            System.out.println(String.format("%02d-%02d %s öre", startHour, endHour, df.format(ore)));
         }
+
         System.out.println("Lägsta pris: " + df.format(min));
         System.out.println("Högsta pris: " + df.format(max));
         System.out.println("Medelpris: " + df.format(avg));
