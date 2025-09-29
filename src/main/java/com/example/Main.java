@@ -118,7 +118,7 @@ public class Main {
         }
 
         if (sorted) {
-            priser.sort(Comparator.comparingDouble(Elpris::sekPerKWh).reversed());
+            priser.sort(Comparator.comparingDouble(Elpris::sekPerKWh));
         }
 
         double min = priser.stream().mapToDouble(p -> p.sekPerKWh() * 100).min().orElse(0);
