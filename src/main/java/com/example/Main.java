@@ -118,7 +118,7 @@ public class Main {
         double avg = priser.stream().mapToDouble(p -> p.sekPerKWh() * 100).average().orElse(0);
 
         System.out.println("ElpriserAPI initialiserat. Cachning: Av");
-        System.out.println("påbörja laddning");
+        System.out.println("Påbörja laddning");
         for (Elpris pris : priser) {
             int start = pris.timeStart().getHour();
             int end = pris.timeEnd().getHour();
