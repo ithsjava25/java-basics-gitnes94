@@ -83,9 +83,8 @@ public class Main {
         }
 
         ElpriserAPI api = new ElpriserAPI(true);
-        List<Elpris> priser = new ArrayList<>();
 
-        priser.addAll(api.getPriser(datum, prisklass));
+        List<Elpris> priser = new ArrayList<>(api.getPriser(datum, prisklass));
 
         if (chargingHours > 0) {
             priser.addAll(api.getPriser(datum.plusDays(1), prisklass));
