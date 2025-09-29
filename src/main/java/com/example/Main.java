@@ -50,7 +50,7 @@ public class Main {
         try {
             prisklass = Prisklass.valueOf(zone.toUpperCase());
         } catch (IllegalArgumentException e) {
-            System.out.println("fel: okänd zon. välj SE1, SE2, SE3 eller SE4");
+            System.out.println("fel zon");
             return;
         }
 
@@ -95,7 +95,7 @@ public class Main {
             Elpris end = priser.get(bestStart + chargingHours - 1);
             double avg = minSum / chargingHours;
 
-            System.out.printf("Påbörja laddning: %02d:00 - %02d:00%n", start.timeStart().getHour(), end.timeEnd().getHour());
+            System.out.println("påbörja laddning: " + start.timeStart().getHour() + "-" + end.timeEnd().getHour());
             System.out.printf("Total kostnad: %.2f öre%n", minSum);
             System.out.printf("Genomsnitt: %.2f öre/kWh%n", avg);
             return;
@@ -125,7 +125,7 @@ public class Main {
     private static void printHelp() {
         System.out.println("""
                 ⚡ Electricity Price Optimizer CLI
-                Användning:
+                usage:
                   java -cp target/classes com.example.Main --zone SE3 --date 2025-09-29
 
                 Argument:
