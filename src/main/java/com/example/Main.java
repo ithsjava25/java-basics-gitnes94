@@ -162,7 +162,7 @@ public class Main {
 
         List<Elpris> priserForDisplay = new ArrayList<>(priser);
         if (sorted) {
-            // KORRIGERING: Tar bort .reversed() för att sortera från billigast till dyrast.
+
             priserForDisplay.sort(Comparator.comparingDouble(Elpris::sekPerKWh));
         }
 
@@ -184,7 +184,7 @@ public class Main {
 
     private static void printHelp() {
         System.out.println("""
-                ⚡ Electricity Price Optimizer CLI
+                ⚡ Electricity Price Optimizer CLI ⚡
                 
                 Hjälper dig optimera energianvändningen baserat på timpriser.
                 
@@ -196,7 +196,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt) Välj elprisområde.
                   --date YYYY-MM-DD        (valfritt, standard = idag) Datum att hämta priser för.
                   --sorted                 (valfritt) Visar prislistan sorterad från billigast till dyrast.
-                  --charging 2h|4h|8h      (valfritt) Hittar de billigaste N sammanhängande timmarna för laddning.
+                  --charging 2h|4h|8h      (valfritt) Hittar de billigaste timmarna för laddning.
                   --help                   (valfritt) Visar denna hjälp.
                 """);
     }
