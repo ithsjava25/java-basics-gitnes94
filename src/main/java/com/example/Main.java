@@ -86,7 +86,10 @@ public class Main {
         List<Elpris> priser = new ArrayList<>();
 
         priser.addAll(api.getPriser(datum, prisklass));
-        priser.addAll(api.getPriser(datum.plusDays(1), prisklass));
+
+        if (chargingHours > 0) {
+            priser.addAll(api.getPriser(datum.plusDays(1), prisklass));
+        }
 
         if (priser.isEmpty()) {
             System.out.println("Ingen data tillgänglig för zon: " + zone + " datum: " + datum);
