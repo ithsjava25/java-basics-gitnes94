@@ -15,6 +15,7 @@ public class Main {
         String zone = null;
         String dateStr = null;
         boolean sorted = false;
+        int chargingHours = 0;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -29,6 +30,11 @@ public class Main {
                     }
                 }
                 case "--sorted" -> sorted = true;
+                case "--charge" -> {
+                    if (i + 1 < args.length) {
+                        chargingHours = Integer.parseInt(args[++i]);
+                    }
+                }
                 case "--help" -> {
                     printHelp();
                     return;
@@ -71,6 +77,40 @@ public class Main {
             return;
         }
 
+        if (chargingHours > 0) {
+            if (chargingHours > priser.size()) {
+                System.err.println("Kan inte ladda längre än " + priser.size() + " timmar.");
+                return;
+            }
+
+            double minSum = Double.MAX_VALUE;
+            int bestStartIndex = 0;
+
+            for (int i = 0; i <= priser.size() - chargingHours; i++) {
+                double sum = 0;
+                for (int j = 0; j < chargingHours; j++) {
+                    sum += priser.get(i + j).sekPerKWh() * 100;
+                }
+                if (sum < minSum) {
+                    minSum = sum;
+                    bestStartIndex = i;
+                }
+            }
+
+            Elpris start = priser.get(bestStartIndex);
+            Elpris end = priser.get(bestStartIndex + chargingHours - 1);
+            double avg = minSum / chargingHours;
+
+            System.out.printf(
+                    "Påbörja laddning kl %02d:00 och ladda till %02d:00%n",
+                    start.timeStart().getHour(),
+                    end.timeEnd().getHour()
+            );
+            System.out.printf("Total kostnad: %.2f öre%n", minSum);
+            System.out.printf("Genomsnitt: %.2f öre/kWh%n", avg);
+            return;
+        }
+
         if (sorted) {
             priser.sort(Comparator.comparingDouble(Elpris::sekPerKWh).reversed());
         }
@@ -93,6 +133,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt)
                   --date YYYY-MM-DD        (valfritt, standard = idag)
                   --sorted                 (sortera priser fallande)
+                  --charge N               (hitta billigaste N timmar för laddning)
                   --help                   (visar denna hjälp)
                 """);
     }
