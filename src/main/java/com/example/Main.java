@@ -124,17 +124,6 @@ public class Main {
     }
 
     private static void printHelp() {
-        System.out.println("""
-                ⚡ Electricity Price Optimizer CLI
-                Användning:
-                  java -cp target/classes com.example.Main --zone SE3 --date 2025-09-29
-
-                Argument:
-                  --zone SE1|SE2|SE3|SE4   (obligatoriskt)
-                  --date YYYY-MM-DD        (valfritt, standard = idag)
-                  --sorted                 (sortera priser fallande)
-                  --charge N               (hitta billigaste N timmar för laddning)
-                  --help                   (visar denna hjälp)
-                """);
+        System.out.println("--charging");
     }
 }
