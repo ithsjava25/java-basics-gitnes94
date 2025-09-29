@@ -6,6 +6,7 @@ import com.example.api.ElpriserAPI.Prisklass;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
 import java.util.List;
 
 public class Main {
@@ -13,6 +14,7 @@ public class Main {
     public static void main(String[] args) {
         String zone = null;
         String dateStr = null;
+        boolean sorted = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -26,6 +28,7 @@ public class Main {
                         dateStr = args[++i];
                     }
                 }
+                case "--sorted" -> sorted = true;
                 case "--help" -> {
                     printHelp();
                     return;
@@ -34,7 +37,7 @@ public class Main {
         }
 
         if (zone == null) {
-            System.err.println("❌ Du måste ange en priszon med --zone SE1|SE2|SE3|SE4");
+            System.err.println("Du måste ange en priszon med --zone SE1|SE2|SE3|SE4");
             printHelp();
             return;
         }
@@ -43,7 +46,7 @@ public class Main {
         try {
             prisklass = Prisklass.valueOf(zone);
         } catch (IllegalArgumentException e) {
-            System.err.println("❌ Ogiltig zon: " + zone);
+            System.err.println("Ogiltig zon: " + zone);
             printHelp();
             return;
         }
@@ -55,7 +58,7 @@ public class Main {
             try {
                 datum = LocalDate.parse(dateStr);
             } catch (DateTimeParseException e) {
-                System.err.println("❌ Ogiltigt datumformat. Använd YYYY-MM-DD");
+                System.err.println("Ogiltigt datumformat. Använd YYYY-MM-DD");
                 return;
             }
         }
@@ -64,16 +67,19 @@ public class Main {
         List<Elpris> priser = api.getPriser(datum, prisklass);
 
         if (priser.isEmpty()) {
-            System.out.println("⚠️ Inga priser hittades för " + datum + " i zon " + prisklass);
+            System.out.println("Inga priser hittades för " + datum + " i zon " + prisklass);
             return;
         }
 
-        System.out.println("\n📊 Elpriser för " + prisklass + " (" + datum + "):\n");
+        if (sorted) {
+            priser.sort(Comparator.comparingDouble(Elpris::sekPerKWh).reversed());
+        }
+
         for (Elpris pris : priser) {
-            System.out.printf("%s - %s | %.2f SEK/kWh\n",
-                    pris.timeStart().toLocalTime(),
-                    pris.timeEnd().toLocalTime(),
-                    pris.sekPerKWh());
+            String start = String.format("%02d", pris.timeStart().getHour());
+            String end = String.format("%02d", pris.timeEnd().getHour());
+            double öre = pris.sekPerKWh() * 100;
+            System.out.printf("%s-%s %.2f öre%n", start, end, öre);
         }
     }
 
@@ -86,6 +92,7 @@ public class Main {
                 Argument:
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt)
                   --date YYYY-MM-DD        (valfritt, standard = idag)
+                  --sorted                 (sortera priser fallande)
                   --help                   (visar denna hjälp)
                 """);
     }
