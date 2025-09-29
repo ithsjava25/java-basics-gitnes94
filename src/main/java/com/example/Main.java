@@ -4,10 +4,13 @@ import com.example.api.ElpriserAPI;
 import com.example.api.ElpriserAPI.Elpris;
 import com.example.api.ElpriserAPI.Prisklass;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class Main {
 
@@ -74,6 +77,11 @@ public class Main {
             return;
         }
 
+        // DecimalFormat för svenska format med komma
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.forLanguageTag("sv-SE"));
+        symbols.setDecimalSeparator(',');
+        DecimalFormat df = new DecimalFormat("#0.00", symbols);
+
         if (chargingHours > 0) {
             if (chargingHours > priser.size()) {
                 System.out.println("fel: kan inte ladda längre än " + priser.size() + " timmar");
@@ -96,8 +104,8 @@ public class Main {
             double avg = minSum / chargingHours;
 
             System.out.println("påbörja laddning: " + start.timeStart().getHour() + "-" + end.timeEnd().getHour());
-            System.out.printf("Total kostnad: %.2f öre%n", minSum);
-            System.out.printf("Genomsnitt: %.2f öre/kWh%n", avg);
+            System.out.println("Total kostnad: " + df.format(minSum) + " öre");
+            System.out.println("Genomsnitt: " + df.format(avg) + " öre/kWh");
             return;
         }
 
@@ -115,11 +123,11 @@ public class Main {
             int start = pris.timeStart().getHour();
             int end = pris.timeEnd().getHour();
             double ore = pris.sekPerKWh() * 100;
-            System.out.printf("%02d-%02d %.2f öre%n", start, end, ore);
+            System.out.println(String.format("%02d-%02d %s öre", start, end, df.format(ore)));
         }
-        System.out.printf("Lägsta pris: %.2f%n", min);
-        System.out.printf("Högsta pris: %.2f%n", max);
-        System.out.printf("Medelpris: %.2f%n", avg);
+        System.out.println("Lägsta pris: " + df.format(min));
+        System.out.println("Högsta pris: " + df.format(max));
+        System.out.println("Medelpris: " + df.format(avg));
     }
 
     private static void printHelp() {
@@ -132,7 +140,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt)
                   --date YYYY-MM-DD        (valfritt, standard = idag)
                   --sorted                 (sortera priser fallande)
-                  --charging               (hitta billigaste N timmar för laddning)
+                  --charge N               (hitta billigaste N timmar för laddning)
                   --help                   (visar denna hjälp)
                 """);
     }
