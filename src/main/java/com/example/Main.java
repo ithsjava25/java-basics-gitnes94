@@ -38,11 +38,10 @@ public class Main {
                     if (i + 1 < args.length) dateStr = args[++i];
                 }
                 case "--sorted" -> sorted = true;
-                case "--charging" -> { // Korrekt argumentnamn
+                case "--charging" -> {
                     if (i + 1 < args.length) {
                         String argValue = args[++i];
                         try {
-                            // Hantera både "4" och "4h"
                             if (argValue.endsWith("h")) {
                                 chargingHours = Integer.parseInt(argValue.substring(0, argValue.length() - 1));
                             } else {
@@ -102,6 +101,9 @@ public class Main {
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
+        // Ny formattering för prislistan (HH-HH)
+        DateTimeFormatter hourRangeFormatter = DateTimeFormatter.ofPattern("HH-HH");
+        // Formattering för laddningsfönster (HH:mm)
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
 
@@ -142,16 +144,14 @@ public class Main {
             double totalCostOre = minSum * 100;
             double avgOre = totalCostOre / chargingHours;
 
-            // OBS: Lägger till de rader testet förväntar sig i det gamla formatet
-            // API:et har redan skrivit ut "ElpriserAPI initialiserat. Cachning: P?"
+            // OBS: "Påbörja laddning" och "Medelpris" för att matcha testet
             System.out.println("Påbörja laddning");
 
-            // Detaljerad utskrift
             System.out.println("Optimalt laddningsfönster (" + chargingHours + "h):");
             System.out.println("Starttid: kl " + start.timeStart().format(timeFormatter));
             System.out.println("Sluttid: kl " + end.timeEnd().format(timeFormatter));
             System.out.println("Total kostnad: " + df.format(totalCostOre) + " öre");
-            System.out.println("Genomsnitt: " + df.format(avgOre) + " öre/kWh");
+            System.out.println("Medelpris: " + df.format(avgOre) + " öre/kWh"); // Ändrad från Genomsnitt till Medelpris
 
             return;
         }
@@ -171,16 +171,15 @@ public class Main {
 
         List<Elpris> priserForDisplay = new ArrayList<>(priser);
         if (sorted) {
-            // Sortera efter pris, dyrast först (fallande)
             priserForDisplay.sort(Comparator.comparingDouble(Elpris::sekPerKWh).reversed());
         }
 
-        // Display priser
+        // Display priser: Använd hourRangeFormatter för att få HH-HH format
         for (Elpris pris : priserForDisplay) {
-            String startHour = pris.timeStart().format(timeFormatter);
-            String endHour = pris.timeEnd().format(timeFormatter);
+            // Använd hourRangeFormatter (HH-HH) istället för timeFormatter (HH:mm)
+            String startEndHours = pris.timeStart().format(hourRangeFormatter);
             double ore = pris.sekPerKWh() * 100;
-            System.out.println(startHour + "-" + endHour + " " + df.format(ore) + " öre");
+            System.out.println(startEndHours + " " + df.format(ore) + " öre");
         }
 
         System.out.println("----------------------------------------");
