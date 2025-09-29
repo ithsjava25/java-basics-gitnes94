@@ -84,7 +84,7 @@ public class Main {
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
         // Tidsformat
-        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");   // för prislista
+        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH-HH");   // för prislista
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm"); // för laddningsfönster
 
         // Laddningsoptimering
