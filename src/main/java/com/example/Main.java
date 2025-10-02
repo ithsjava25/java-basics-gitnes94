@@ -190,8 +190,6 @@ public class Main {
             String endHour = pris.timeEnd().format(hourFormatter);
 
             String timeRange = startHour + "-" + endHour;
-
-            // Priset hämtas på nytt för utskrift
             double ore = pris.sekPerKWh() * 100;
             System.out.println(timeRange + " " + df.format(ore) + " öre");
         }
