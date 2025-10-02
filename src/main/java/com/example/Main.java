@@ -17,6 +17,7 @@ import java.util.Locale;
 public class Main {
 
     public static void main(String[] args) {
+
         if (args.length == 0 || (args.length == 1 && args[0].equals("--help"))) {
             printHelp();
             return;
@@ -27,6 +28,7 @@ public class Main {
         boolean sorted = false;
         int chargingHours = 0;
 
+        //Hantera CLI argument
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--zone" -> {
@@ -82,6 +84,7 @@ public class Main {
             }
         }
 
+        //Använda mock data eller ta fram riktiga priser
         ElpriserAPI api = new ElpriserAPI(true);
 
         List<Elpris> priser = new ArrayList<>(api.getPriser(datum, prisklass));
@@ -94,30 +97,53 @@ public class Main {
             System.out.println("Ingen data tillgänglig för zon: " + zone + " datum: " + datum);
             return;
         }
+        
+        // Vi förväntar oss 24 timmar per dag.
+        int expectedHours = 24;
+        if (chargingHours > 0) {
+            // Om --charging används, förväntar vi oss två dagars data.
+            expectedHours = 48;
+        }
+
+        // Beräkna hur många prissteg det går per timme (1 för timme, 4 för kvart)
+        int stepsPerPeriod = priser.size() / expectedHours;
+
+        if (stepsPerPeriod != 1 && stepsPerPeriod != 4) {
+            System.out.println("Fel: Okänd dataupplösning. Hittade " + priser.size() +
+                    " datapunkter för " + expectedHours + " timmar.");
+            return;
+        }
+
+        // SLUT NY LOGIK
 
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.forLanguageTag("sv-SE"));
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");
+        // DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH"); // Inte längre nödvändig
 
         if (chargingHours > 0) {
             if (chargingHours < 2 || chargingHours > 8) {
                 System.out.println("Fel: Laddningsfönster måste vara 2h, 4h eller 8h.");
                 return;
             }
-            if (chargingHours > priser.size()) {
-                System.out.println("Fel: Kan inte ladda längre än " + priser.size() + " tillgängliga timmar.");
+
+            int chargingSteg = chargingHours * stepsPerPeriod;
+
+            if (chargingSteg > priser.size()) {
+                System.out.println("Fel: Kan inte ladda längre än " + priser.size() + " tillgängliga " +
+                        (stepsPerPeriod == 4 ? "kvartar" : "timmar") + ".");
                 return;
             }
 
             double minSum = Double.MAX_VALUE;
             int bestStart = -1;
-
-            for (int i = 0; i <= priser.size() - chargingHours; i++) {
+            
+            for (int i = 0; i <= priser.size() - chargingSteg; i++) {
                 double currentSum = 0;
-                for (int j = 0; j < chargingHours; j++) {
+           
+                for (int j = 0; j < chargingSteg; j++) {
                     currentSum += priser.get(i + j).sekPerKWh();
                 }
 
@@ -133,7 +159,7 @@ public class Main {
             }
 
             Elpris start = priser.get(bestStart);
-            Elpris end = priser.get(bestStart + chargingHours - 1);
+            Elpris end = priser.get(bestStart + chargingSteg - 1);
 
             double totalCostOre = minSum * 100;
             double avgOre = totalCostOre / chargingHours;
@@ -149,29 +175,40 @@ public class Main {
             return;
         }
 
-        List<Double> priserOre = priser.stream()
-                .map(p -> p.sekPerKWh() * 100)
-                .toList();
+        List<Double> priserOre = new ArrayList<>();
+        double minPrice = Double.MAX_VALUE;
+        double maxPrice = Double.MIN_VALUE;
+        double sumPrice = 0.0;
 
-        double min = priserOre.stream().min(Double::compare).orElse(0.0);
-        double max = priserOre.stream().max(Double::compare).orElse(0.0);
-        double avg = priserOre.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        for (Elpris pris : priser) {
+            double ore = pris.sekPerKWh() * 100;
+            priserOre.add(ore);
+
+            if (ore < minPrice) {
+                minPrice = ore;
+            }
+            if (ore > maxPrice) {
+                maxPrice = ore;
+            }
+            sumPrice += ore;
+        }
+
+        double min = minPrice;
+        double max = maxPrice;
+        double avg = priserOre.isEmpty() ? 0.0 : sumPrice / priserOre.size();
 
         System.out.println("\nElpriser för " + prisklass + " den " + datum.format(DateTimeFormatter.ISO_DATE) + ":");
         System.out.println("----------------------------------------");
 
         List<Elpris> priserForDisplay = new ArrayList<>(priser);
         if (sorted) {
-
             priserForDisplay.sort(Comparator.comparingDouble(Elpris::sekPerKWh));
         }
 
         for (Elpris pris : priserForDisplay) {
-            String startHour = pris.timeStart().format(hourFormatter);
-            String endHour = pris.timeEnd().format(hourFormatter);
-
-            String timeRange = startHour + "-" + endHour;
-
+            
+            String timeRange = pris.timeStart().format(timeFormatter) + "-" + pris.timeEnd().format(timeFormatter);
+            
             double ore = pris.sekPerKWh() * 100;
             System.out.println(timeRange + " " + df.format(ore) + " öre");
         }
@@ -184,9 +221,9 @@ public class Main {
 
     private static void printHelp() {
         System.out.println("""
-                ⚡ Electricity Price Optimizer CLI ⚡
+                ⚡ Electricity Price Optimizer CLI
                 
-                Hjälper dig optimera energianvändningen baserat på timpriser.
+                Hjälper dig optimera energianvändningen baserat på elpriser.
                 
                 Användning (usage):
                   java -cp target/classes com.example.Main --zone SE3 --date 2025-09-29
@@ -196,7 +233,7 @@ public class Main {
                   --zone SE1|SE2|SE3|SE4   (obligatoriskt) Välj elprisområde.
                   --date YYYY-MM-DD        (valfritt, standard = idag) Datum att hämta priser för.
                   --sorted                 (valfritt) Visar prislistan sorterad från billigast till dyrast.
-                  --charging 2h|4h|8h      (valfritt) Hittar de billigaste timmarna för laddning.
+                  --charging 2h|4h|8h      (valfritt) Hittar de billigaste N sammanhängande timmarna för laddning.
                   --help                   (valfritt) Visar denna hjälp.
                 """);
     }
