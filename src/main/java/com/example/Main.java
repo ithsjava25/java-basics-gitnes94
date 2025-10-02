@@ -29,6 +29,7 @@ public class Main {
         int chargingHours = 0;
 
         //Hantera CLI argument
+
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--zone" -> {
@@ -85,7 +86,8 @@ public class Main {
         }
 
         //Använda mock data eller ta fram riktiga priser
-        ElpriserAPI api = new ElpriserAPI(true);
+
+        ElpriserAPI api = new ElpriserAPI(false);
 
         List<Elpris> priser = new ArrayList<>(api.getPriser(datum, prisklass));
 
@@ -97,31 +99,13 @@ public class Main {
             System.out.println("Ingen data tillgänglig för zon: " + zone + " datum: " + datum);
             return;
         }
-        
-        // Vi förväntar oss 24 timmar per dag.
-        int expectedHours = 24;
-        if (chargingHours > 0) {
-            // Om --charging används, förväntar vi oss två dagars data.
-            expectedHours = 48;
-        }
-
-        // Beräkna hur många prissteg det går per timme (1 för timme, 4 för kvart)
-        int stepsPerPeriod = priser.size() / expectedHours;
-
-        if (stepsPerPeriod != 1 && stepsPerPeriod != 4) {
-            System.out.println("Fel: Okänd dataupplösning. Hittade " + priser.size() +
-                    " datapunkter för " + expectedHours + " timmar.");
-            return;
-        }
-
-        // SLUT NY LOGIK
 
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.forLanguageTag("sv-SE"));
         symbols.setDecimalSeparator(',');
         DecimalFormat df = new DecimalFormat("#0.00", symbols);
 
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        // DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH"); // Inte längre nödvändig
+        DateTimeFormatter hourFormatter = DateTimeFormatter.ofPattern("HH");
 
         if (chargingHours > 0) {
             if (chargingHours < 2 || chargingHours > 8) {
@@ -129,21 +113,17 @@ public class Main {
                 return;
             }
 
-            int chargingSteg = chargingHours * stepsPerPeriod;
-
-            if (chargingSteg > priser.size()) {
-                System.out.println("Fel: Kan inte ladda längre än " + priser.size() + " tillgängliga " +
-                        (stepsPerPeriod == 4 ? "kvartar" : "timmar") + ".");
+            if (chargingHours > priser.size()) {
+                System.out.println("Fel: Kan inte ladda längre än " + priser.size() + " tillgängliga timmar.");
                 return;
             }
 
             double minSum = Double.MAX_VALUE;
             int bestStart = -1;
-            
-            for (int i = 0; i <= priser.size() - chargingSteg; i++) {
+
+            for (int i = 0; i <= priser.size() - chargingHours; i++) {
                 double currentSum = 0;
-           
-                for (int j = 0; j < chargingSteg; j++) {
+                for (int j = 0; j < chargingHours; j++) {
                     currentSum += priser.get(i + j).sekPerKWh();
                 }
 
@@ -159,7 +139,7 @@ public class Main {
             }
 
             Elpris start = priser.get(bestStart);
-            Elpris end = priser.get(bestStart + chargingSteg - 1);
+            Elpris end = priser.get(bestStart + chargingHours - 1);
 
             double totalCostOre = minSum * 100;
             double avgOre = totalCostOre / chargingHours;
@@ -206,9 +186,12 @@ public class Main {
         }
 
         for (Elpris pris : priserForDisplay) {
-            
-            String timeRange = pris.timeStart().format(timeFormatter) + "-" + pris.timeEnd().format(timeFormatter);
-            
+            String startHour = pris.timeStart().format(hourFormatter);
+            String endHour = pris.timeEnd().format(hourFormatter);
+
+            String timeRange = startHour + "-" + endHour;
+
+            // Priset hämtas på nytt för utskrift
             double ore = pris.sekPerKWh() * 100;
             System.out.println(timeRange + " " + df.format(ore) + " öre");
         }
@@ -223,7 +206,7 @@ public class Main {
         System.out.println("""
                 ⚡ Electricity Price Optimizer CLI
                 
-                Hjälper dig optimera energianvändningen baserat på elpriser.
+                Hjälper dig optimera energianvändningen baserat på timpriser.
                 
                 Användning (usage):
                   java -cp target/classes com.example.Main --zone SE3 --date 2025-09-29
